@@ -23,13 +23,14 @@ import (
 	"math/big"
 	"sync/atomic"
 
-	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ava-labs/coreth/accounts/abi"
+	"github.com/ava-labs/coreth/core/vm"
+	"github.com/ava-labs/coreth/eth/tracers"
+	"github.com/ava-labs/coreth/vmerrs"
+	corestate "github.com/ava-labs/coreth/core/state"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/common/math"
-	corestate "github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/core/vm"
-	"github.com/ethereum/go-ethereum/eth/tracers"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/holiman/uint256"
 )
@@ -165,7 +166,7 @@ func (t *sentioTracer) CaptureStart(env *vm.EVM, from common.Address, to common.
 		t.receipt.TransactionIndex = uint(ibs.TxIndex())
 	}
 
-	rules := env.ChainConfig().Rules(env.Context.BlockNumber, env.Context.Random != nil, env.Context.Time)
+	rules := env.ChainConfig().AvalancheRules(env.Context.BlockNumber, env.Context.Time)
 	t.activePrecompiles = vm.ActivePrecompiles(rules)
 
 	root := Trace{
@@ -638,7 +639,7 @@ func (f *Trace) processError(output []byte, err error) {
 	if f.Type == vm.CREATE.String() || f.Type == vm.CREATE2.String() {
 		f.To = &common.Address{}
 	}
-	if !errors.Is(err, vm.ErrExecutionReverted) || len(output) == 0 {
+	if !errors.Is(err, vmerrs.ErrExecutionReverted) || len(output) == 0 {
 		return
 	}
 	//f.Output = output
