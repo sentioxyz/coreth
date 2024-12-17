@@ -24,10 +24,10 @@ import (
 	"sync/atomic"
 
 	"github.com/ava-labs/coreth/accounts/abi"
+	corestate "github.com/ava-labs/coreth/core/state"
 	"github.com/ava-labs/coreth/core/vm"
 	"github.com/ava-labs/coreth/eth/tracers"
 	"github.com/ava-labs/coreth/vmerrs"
-	corestate "github.com/ava-labs/coreth/core/state"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/common/math"
@@ -86,11 +86,11 @@ type Trace struct {
 	Revertal string        `json:"revertReason,omitempty"`
 
 	// Used by jump
-	InputStack   []uint256.Int `json:"inputStack,omitempty"`
-	InputMemory  *[]string     `json:"inputMemory,omitempty"`
-	OutputStack  []uint256.Int `json:"outputStack,omitempty"`
-	OutputMemory *[]string     `json:"outputMemory,omitempty"`
-	FunctionPc   uint64        `json:"functionPc,omitempty"`
+	InputStack   []string  `json:"inputStack,omitempty"`
+	InputMemory  *[]string `json:"inputMemory,omitempty"`
+	OutputStack  []string  `json:"outputStack,omitempty"`
+	OutputMemory *[]string `json:"outputMemory,omitempty"`
+	FunctionPc   uint64    `json:"functionPc,omitempty"`
 
 	// Used by log
 	Address     *common.Address `json:"address,omitempty"`
@@ -333,7 +333,7 @@ func (t *sentioTracer) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, s
 		call.Value = (*hexutil.Big)(scope.Stack.Back(2).ToBig())
 
 		v := call.Value.ToInt()
-		if v.BitLen() != 0 && !t.env.Context.CanTransfer(t.env.StateDB, from, v) {
+		if v.BitLen() != 0 && !t.env.Context.CanTransfer(t.env.StateDB, from, uint256.MustFromBig(v)) {
 			if call.Error == "" {
 				call.Error = "insufficient funds for transfer"
 			}
@@ -665,14 +665,14 @@ func formatMemory(m *vm.Memory) *[]string {
 	return &res
 }
 
-func copyStack(s *vm.Stack, copySize int) []uint256.Int {
+func copyStack(s *vm.Stack, copySize int) []string {
 	if copySize == 0 {
 		return nil
 	}
 	stackSize := len(s.Data())
-	res := make([]uint256.Int, stackSize)
+	res := make([]string, stackSize)
 	for i := stackSize - copySize; i < stackSize; i++ {
-		res[i] = s.Data()[i]
+		res[i] = s.Data()[i].Hex()
 	}
 	return res
 }
